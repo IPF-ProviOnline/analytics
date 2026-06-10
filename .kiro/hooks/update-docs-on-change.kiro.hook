@@ -1,0 +1,22 @@
+{
+  "enabled": true,
+  "name": "Update Docs on Source Change",
+  "description": "When source files (TypeScript, config, or package files) are edited, asks the agent to review the change and update relevant documentation in the README or /docs folder to keep docs in sync with the codebase.",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "*.ts",
+      "*.tsx",
+      "*.json",
+      "*.config.ts",
+      "sst.config.ts",
+      "turbo.json",
+      "package.json"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A source file was just edited. Review the change and determine if it affects any documented behavior, architecture, commands, or configuration. If so, update the relevant documentation in the README.md or the /docs folder to reflect the change. Only update docs if the change is meaningful (e.g., new features, changed APIs, updated commands, architectural shifts). Do not update docs for trivial changes like typo fixes in code or minor refactors that don't affect public behavior."
+  }
+}

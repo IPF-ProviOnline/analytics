@@ -1,0 +1,1757 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Provident.pl — DataLayer & Server-Side Tagging Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #111318;
+    --surface2: #181c24;
+    --border: #1e2330;
+    --accent: #00d4aa;
+    --accent2: #4f8ef7;
+    --accent3: #f7c94f;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --danger: #f87171;
+    --success: #4ade80;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --code-bg: #0d1117;
+    --p-color: #94a3b8;
+    --lead-color: #b0bfd0;
+    --nav-link-color: #94a3b8;
+    --h1-color: #ffffff;
+  }
+
+  :root.light {
+    --bg: #f8f9fc;
+    --surface: #ffffff;
+    --surface2: #f1f3f8;
+    --border: #dde1eb;
+    --accent: #009e80;
+    --accent2: #2563eb;
+    --accent3: #b45309;
+    --text: #1a1f2e;
+    --muted: #64748b;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --code-bg: #f4f6fa;
+    --p-color: #475569;
+    --lead-color: #374151;
+    --nav-link-color: #475569;
+    --h1-color: #0f172a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  nav {
+    width: 260px;
+    min-width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .nav-logo {
+    padding: 0 20px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .nav-logo .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+
+  .nav-logo h2 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 8px;
+    letter-spacing: -0.01em;
+  }
+
+  .nav-logo p {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .nav-section {
+    padding: 0 12px;
+    margin-bottom: 8px;
+  }
+
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    padding: 6px 8px 4px;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 6px 8px;
+    border-radius: 5px;
+    color: var(--nav-link-color);
+    text-decoration: none;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+
+  .nav-link:hover { background: var(--surface2); color: var(--text); }
+  .nav-link.active { background: rgba(0,212,170,0.08); color: var(--accent); border-color: rgba(0,212,170,0.2); }
+
+  .nav-link .ev-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 3px;
+    margin-right: 6px;
+    background: rgba(0,212,170,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,170,0.25);
+  }
+
+  .nav-link .ev-badge.op {
+    background: rgba(247,201,79,0.12);
+    color: var(--accent3);
+    border-color: rgba(247,201,79,0.25);
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 48px 56px;
+    max-width: 920px;
+  }
+
+  section { display: none; }
+  section.active { display: block; }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: var(--h1-color);
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+
+  h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 32px 0 12px;
+    letter-spacing: -0.02em;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+  }
+
+  h2:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
+
+  h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 20px 0 8px;
+  }
+
+  p { color: var(--p-color); margin-bottom: 12px; line-height: 1.7; }
+
+  .lead { font-size: 15px; color: var(--lead-color); margin-bottom: 24px; }
+
+  .hero {
+    background: linear-gradient(135deg, rgba(0,212,170,0.05), rgba(79,142,247,0.05));
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(0,212,170,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 16px 0;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .code-header {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .code-header .lang { color: var(--accent); font-weight: 500; font-family: var(--mono); }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 2px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.15s;
+    font-family: var(--sans);
+  }
+
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--success); color: var(--success); }
+
+  .code-body { padding: 16px; overflow-x: auto; line-height: 1.7; white-space: pre; color: #e2e8f0; }
+
+  .code-body .kw  { color: #c792ea; }
+  .code-body .str { color: #4caf7d; }
+  .code-body .num { color: #f78c6c; }
+  .code-body .key { color: #82aaff; }
+  .code-body .cmt { color: #546e7a; font-style: italic; }
+  .code-body .fn  { color: #82aaff; }
+  .code-body .undef { color: #f78c6c; }
+  .code-body .bool  { color: #c792ea; }
+
+  :root.light .code-body { color: #1a1f2e; }
+  :root.light .code-body .kw   { color: #7c3aed; }
+  :root.light .code-body .str  { color: #16a34a; }
+  :root.light .code-body .num  { color: #c2410c; }
+  :root.light .code-body .key  { color: #1d4ed8; }
+  :root.light .code-body .cmt  { color: #94a3b8; }
+  :root.light .code-body .undef { color: #c2410c; }
+  :root.light .code-body .bool  { color: #7c3aed; }
+
+  .theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 20px;
+    z-index: 100;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  .params-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+
+  .params-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .params-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(30,35,48,0.8);
+    vertical-align: top;
+    color: var(--p-color);
+  }
+
+  :root.light .params-table td { border-bottom-color: var(--border); }
+
+  .params-table td:first-child { font-family: var(--mono); color: var(--text); font-size: 12px; }
+
+  .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: var(--mono);
+  }
+
+  .tag-required { background: rgba(248,113,113,0.15); color: var(--danger); border: 1px solid rgba(248,113,113,0.3); }
+  .tag-optional { background: rgba(100,116,139,0.15); color: var(--muted); border: 1px solid rgba(100,116,139,0.3); }
+  .tag-string   { background: rgba(0,212,170,0.1); color: var(--accent); border: 1px solid rgba(0,212,170,0.25); }
+  .tag-object   { background: rgba(247,201,79,0.1); color: var(--accent3); border: 1px solid rgba(247,201,79,0.25); }
+  .tag-number   { background: rgba(79,142,247,0.1); color: var(--accent2); border: 1px solid rgba(79,142,247,0.25); }
+  .tag-bool     { background: rgba(192,100,250,0.1); color: #c792ea; border: 1px solid rgba(192,100,250,0.25); }
+
+  .callout {
+    border-radius: 7px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    border-left: 3px solid;
+    font-size: 13px;
+  }
+
+  .callout-info    { background: rgba(79,142,247,0.07); border-color: var(--accent2); color: #94a3b8; }
+  .callout-warn    { background: rgba(247,201,79,0.07); border-color: var(--accent3); color: #94a3b8; }
+  .callout-success { background: rgba(74,222,128,0.07); border-color: var(--success); color: #94a3b8; }
+  .callout-danger  { background: rgba(248,113,113,0.07); border-color: var(--danger); color: #94a3b8; }
+
+  .callout strong { color: var(--text); }
+
+  code {
+    font-family: var(--mono);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .event-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 16px 0;
+  }
+
+  .event-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .event-card .ev-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .event-card .ev-name.op { color: var(--accent3); }
+
+  .event-card .ev-desc {
+    font-size: 12px;
+    color: var(--p-color);
+  }
+
+  .event-card .ev-meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .rule-list {
+    list-style: none;
+    margin: 12px 0;
+  }
+
+  .rule-list li {
+    padding: 8px 0 8px 28px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--p-color);
+    position: relative;
+  }
+
+  .rule-list li:last-child { border-bottom: none; }
+
+  .rule-list li::before {
+    content: '→';
+    position: absolute;
+    left: 4px;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  .prop-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+
+  .prop-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prop-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(30,35,48,0.8);
+    vertical-align: top;
+    color: var(--p-color);
+    font-size: 12px;
+  }
+
+  :root.light .prop-table td { border-bottom-color: var(--border); }
+  .prop-table td:first-child { font-family: var(--mono); color: var(--accent2); }
+
+  .boundary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .boundary-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .boundary-card h4 {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .boundary-card.must h4 { color: var(--success); }
+  .boundary-card.must-not h4 { color: var(--danger); }
+  .boundary-card.server h4 { color: var(--accent2); }
+
+  .boundary-card ul {
+    list-style: none;
+    font-size: 12px;
+    color: var(--p-color);
+  }
+
+  .boundary-card ul li {
+    padding: 4px 0 4px 16px;
+    position: relative;
+  }
+
+  .boundary-card.must ul li::before { content: '✓'; position: absolute; left: 0; color: var(--success); }
+  .boundary-card.must-not ul li::before { content: '✗'; position: absolute; left: 0; color: var(--danger); }
+  .boundary-card.server ul li::before { content: '→'; position: absolute; left: 0; color: var(--accent2); }
+
+  .benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 16px 0;
+  }
+
+  .benefit-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--p-color);
+    text-align: center;
+  }
+
+  .section-tag {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background: rgba(0,212,170,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,170,0.25);
+  }
+
+  .section-tag.op {
+    background: rgba(247,201,79,0.1);
+    color: var(--accent3);
+    border-color: rgba(247,201,79,0.25);
+  }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">🌙 Dark mode</button>
+
+<nav>
+  <div class="nav-logo">
+    <span class="badge">v1</span>
+    <h2>DataLayer Spec</h2>
+    <p>provident.pl · GTM-MVB3DLN</p>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Overview</div>
+    <a class="nav-link active" onclick="showSection('overview', this)">Architecture Overview</a>
+    <a class="nav-link" onclick="showSection('global-context', this)">Global Context Variables</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Long Application</div>
+    <a class="nav-link" onclick="showSection('loan-model', this)">Loan Data Model</a>
+    <a class="nav-link" onclick="showSection('checkout', this)"><span class="ev-badge">event</span>checkout</a>
+    <a class="nav-link" onclick="showSection('purchase', this)"><span class="ev-badge">event</span>purchase</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Short Forms</div>
+    <a class="nav-link" onclick="showSection('form-page-view', this)"><span class="ev-badge">event</span>form_page_view</a>
+    <a class="nav-link" onclick="showSection('generate-lead', this)"><span class="ev-badge">event</span>generate_lead</a>
+    <a class="nav-link" onclick="showSection('landing-page', this)"><span class="ev-badge">event</span>page_view (LP)</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Error &amp; Interaction</div>
+    <a class="nav-link" onclick="showSection('field-blur', this)"><span class="ev-badge op">gaevent</span>Field blur</a>
+    <a class="nav-link" onclick="showSection('step-validation', this)"><span class="ev-badge op">gaevent</span>Step validation</a>
+    <a class="nav-link" onclick="showSection('select-errors', this)"><span class="ev-badge op">gaevent</span>Selects &amp; checkboxes</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Authenticated Area</div>
+    <a class="nav-link" onclick="showSection('login', this)"><span class="ev-badge">event</span>login</a>
+    <a class="nav-link" onclick="showSection('dashboard-view', this)"><span class="ev-badge">event</span>dashboard_view</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Other Events</div>
+    <a class="nav-link" onclick="showSection('calculator', this)"><span class="ev-badge">event</span>calculator_update</a>
+    <a class="nav-link" onclick="showSection('page-view-spa', this)"><span class="ev-badge">event</span>page_view (SPA)</a>
+    <a class="nav-link" onclick="showSection('ui-interactions', this)"><span class="ev-badge">event</span>ui_interaction</a>
+    <a class="nav-link" onclick="showSection('dashboard-action', this)"><span class="ev-badge">event</span>dashboard_action</a>
+    <a class="nav-link" onclick="showSection('logout', this)"><span class="ev-badge">event</span>logout</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-label">Architecture</div>
+    <a class="nav-link" onclick="showSection('sgtm', this)">Server-Side Tagging</a>
+    <a class="nav-link" onclick="showSection('boundaries', this)">Implementation Boundaries</a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ══════════════════════════ OVERVIEW ══════════════════════════ -->
+  <section id="overview" class="active">
+    <h1>Architecture Overview</h1>
+    <p class="lead">Production-grade dataLayer architecture for the provident.pl platform, built on Next.js (React) and Sanity CMS.</p>
+
+    <div class="hero">
+      <p>The dataLayer is the <strong style="color:var(--accent)">single source of truth</strong> between the frontend application and all marketing and analytics systems — including analytics platforms, advertising platforms, customer engagement tools (e.g. MoEngage), experience analytics (e.g. ContentSquare), and CRM / CDP / BI systems. All communication flows through Tag Manager and server-side tagging, keeping the frontend completely vendor-agnostic.</p>
+    </div>
+
+    <h2>What this document covers</h2>
+    <ul class="rule-list">
+      <li>Long-form loan application (Provi Direct)</li>
+      <li>Short forms and their thank-you pages</li>
+      <li>Product and landing pages</li>
+      <li>Login and authenticated area</li>
+      <li>Calculator interactions</li>
+      <li>Global user identifiers and session context</li>
+      <li>Detailed field- and step-level error tracking for the loan funnel</li>
+    </ul>
+
+    <h2>Dual-Layer Event Model</h2>
+    <p>Every interaction on the site maps to one of two event layers. Using the correct layer for each interaction is mandatory.</p>
+
+    <div class="event-grid">
+      <div class="event-card">
+        <div class="ev-name">Strategic Events</div>
+        <div class="ev-desc">Business-level events used for analytics, attribution, marketing and BI. These represent meaningful moments in the user journey.</div>
+        <div class="ev-meta">page_view · checkout · purchase · form_page_view · generate_lead · calculator_update · login · logout · ui_interaction · dashboard_view · dashboard_action · consent_update</div>
+      </div>
+      <div class="event-card">
+        <div class="ev-name op">gaevent</div>
+        <div class="ev-desc">Operational micro-interaction event for form fields, errors, step validation, and calculator UI. Tracks the granular detail of how users interact with forms.</div>
+        <div class="ev-meta">Preserves historical continuity in GA4, GTM and downstream systems. All new form tracking must use this event name.</div>
+      </div>
+    </div>
+
+    <div class="callout callout-warn">All new implementations must respect this dual-layer model. Use <strong>strategic events</strong> for core business actions and page/step views. Use <strong>gaevent</strong> for granular UI/UX interactions and error tracking.</div>
+
+    <h2>GTM Initialization — Required Code</h2>
+    <p>The initialization order is critical. These three scripts must appear in the exact sequence shown, as high in the <code>&lt;head&gt;</code> as possible. They ensure privacy compliance (Consent Mode) is established before any tracking fires.</p>
+
+    <div class="callout callout-warn"><strong>Why does order matter?</strong> Google's Consent Mode must be set to "denied" by default before GTM loads. If GTM loads first, data may be sent to vendors before the user has consented — a GDPR violation.</div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="lang">html — paste in &lt;head&gt;, as high as possible</span><button class="copy-btn" onclick="copyCode(this,'init-code')">Copy</button></div>
+      <div class="code-body" id="init-code"><span class="cmt">&lt;!-- Step 1: Initialize dataLayer array --&gt;</span>
+<span class="kw">&lt;script&gt;</span>
+  window.dataLayer = window.dataLayer || [];
+<span class="kw">&lt;/script&gt;</span>
+
+<span class="cmt">&lt;!-- Step 2: Set default Consent Mode — all denied until user consents --&gt;</span>
+<span class="kw">&lt;script&gt;</span>
+  <span class="kw">function</span> gtag(){dataLayer.push(arguments);}
+  gtag(<span class="str">'consent'</span>, <span class="str">'default'</span>, {
+    <span class="key">'ad_storage'</span>: <span class="str">'denied'</span>,
+    <span class="key">'analytics_storage'</span>: <span class="str">'denied'</span>,
+    <span class="key">'ad_personalization'</span>: <span class="str">'denied'</span>,
+    <span class="key">'ad_user_data'</span>: <span class="str">'denied'</span>,
+    <span class="key">'wait_for_update'</span>: <span class="num">2000</span>
+  });
+  window.dataLayer.push({<span class="key">'event'</span>: <span class="str">'consent_default_set'</span>});
+<span class="kw">&lt;/script&gt;</span>
+
+<span class="cmt">&lt;!-- Step 3: Load Google Tag Manager --&gt;</span>
+<span class="kw">&lt;script&gt;</span>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&amp;l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-MVB3DLN');<span class="kw">&lt;/script&gt;</span></div>
+    </div>
+
+    <div class="callout callout-info"><strong>Also required:</strong> Paste the noscript fallback immediately after the opening <code>&lt;body&gt;</code> tag to support users with JavaScript disabled.<br><br><code>&lt;noscript&gt;&lt;iframe src="https://www.googletagmanager.com/ns.html?id=GTM-MVB3DLN" height="0" width="0" style="display:none;visibility:hidden"&gt;&lt;/iframe&gt;&lt;/noscript&gt;</code></div>
+
+    <h2>Core Rules — Every Developer Must Know</h2>
+    <table class="params-table">
+      <tr><th>Rule</th><th>What to do</th><th>Why</th></tr>
+      <tr><td>dataLayer init</td><td><code>window.dataLayer = window.dataLayer || [];</code> must run before GTM loads.</td><td>Prevents errors if the array is referenced before GTM creates it.</td></tr>
+      <tr><td>No overrides</td><td>Never reassign <code>dataLayer = [...]</code>. Only ever use <code>dataLayer.push({...})</code></td><td>Reassigning destroys the queue and breaks all tracking.</td></tr>
+      <tr><td>SPA route changes</td><td>On every route change, fire the appropriate strategic event: <code>page_view</code>, <code>checkout</code>, <code>calculator_update</code>, or <code>form_page_view</code>.</td><td>The browser doesn't reload in a SPA — GTM only sees events you push.</td></tr>
+      <tr><td>Ecommerce reset</td><td>Before ANY event with an <code>ecommerce</code> object, push <code>{ ecommerce: null }</code> first.</td><td>GTM merges dataLayer state. Without a null reset, old ecommerce data bleeds into new events.</td></tr>
+      <tr><td>No DOM scraping</td><td>All values must come from application state (React state, API responses).</td><td>DOM text is unreliable, untyped, and breaks silently.</td></tr>
+      <tr><td>No raw PII</td><td>Never push unhashed email or phone numbers.</td><td>Privacy and GDPR compliance. Only SHA-256 hashed values are allowed.</td></tr>
+      <tr><td>Debounce</td><td>Debounce rapid interactions — especially calculator sliders and long-form fields.</td><td>Prevents event spam that skews analytics and wastes sGTM budget.</td></tr>
+      <tr><td>Global context</td><td>Include global context fields (Section 2) on every event, whenever available.</td><td>Enables cross-session identity stitching in sGTM.</td></tr>
+    </table>
+
+    <h2>Event Reference Summary</h2>
+    <table class="params-table">
+      <tr><th>Event</th><th>When it fires</th><th>Context</th><th>Ecommerce?</th><th>Notes</th></tr>
+      <tr><td>page_view</td><td>SPA route render</td><td>Any page</td><td>No</td><td>Includes LP, product pages, error pages</td></tr>
+      <tr><td>calculator_update</td><td>On load + every change</td><td>Calculator</td><td>Yes</td><td>Must be debounced</td></tr>
+      <tr><td>form_page_view</td><td>Short form opens</td><td>Short forms</td><td>No</td><td>—</td></tr>
+      <tr><td>generate_lead</td><td>Short form thank-you page</td><td>Short forms</td><td>No</td><td>—</td></tr>
+      <tr><td>checkout</td><td>Entering each application step</td><td>Long application</td><td>Yes</td><td>Push <code>ecommerce: null</code> first</td></tr>
+      <tr><td>purchase</td><td>Successful application</td><td>Long application</td><td>Yes</td><td>All loan amounts required</td></tr>
+      <tr><td>gaevent</td><td>Field blur, step validation</td><td>Long form / Short forms</td><td>No</td><td>Operational event only</td></tr>
+      <tr><td>login</td><td>Successful authentication</td><td>Auth</td><td>No</td><td>Enriches session identity</td></tr>
+      <tr><td>dashboard_view</td><td>Dashboard fully loaded</td><td>Dashboard</td><td>Yes</td><td>Lists all active products</td></tr>
+      <tr><td>ui_interaction</td><td>Non-funnel UI clicks</td><td>Any</td><td>No</td><td>Banners, CTAs, menus</td></tr>
+      <tr><td>dashboard_action</td><td>Authenticated user actions</td><td>Dashboard</td><td>No</td><td>Schedules, downloads</td></tr>
+      <tr><td>logout</td><td>User signs out</td><td>Auth</td><td>No</td><td>Clears identity hashes</td></tr>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════ GLOBAL CONTEXT ══════════════════════════ -->
+  <section id="global-context">
+    <h1>Global Context Variables</h1>
+    <p class="lead">These fields carry user identity and session state. They must be included on every strategic event, wherever the data is available.</p>
+
+    <div class="callout callout-info">Think of global context as the "who and where" layer. It lets the analytics system answer questions like: "Was this a logged-in user? A new or returning customer? Which marketing campaign brought them here?" — across every event type.</div>
+
+    <h2>Required Fields</h2>
+    <table class="params-table">
+      <tr><th>Field</th><th>Type</th><th>Description</th><th>Example</th></tr>
+      <tr>
+        <td>user_logged_in</td>
+        <td><span class="tag tag-bool">boolean</span></td>
+        <td>Whether the user is currently authenticated.</td>
+        <td><code>false</code></td>
+      </tr>
+      <tr>
+        <td>login_method</td>
+        <td><span class="tag tag-string">string</span></td>
+        <td>Method used to log in. Use <code>"unknown"</code> when not logged in.</td>
+        <td><code>"email"</code> / <code>"pesel"</code> / <code>"unknown"</code></td>
+      </tr>
+      <tr>
+        <td>user_status</td>
+        <td><span class="tag tag-string">string</span></td>
+        <td>Customer type: <code>"NC"</code> = new customer, <code>"RS"</code> = returning customer.</td>
+        <td><code>"RS"</code></td>
+      </tr>
+      <tr>
+        <td>email_sha</td>
+        <td><span class="tag tag-string">string</span></td>
+        <td>SHA-256 hash of the normalized email address. Send the string <code>"undefined"</code> if not available — never omit the field.</td>
+        <td><code>"b1d5b9bd..."</code></td>
+      </tr>
+      <tr>
+        <td>tel_sha</td>
+        <td><span class="tag tag-string">string</span></td>
+        <td>SHA-256 hash of the normalized 9-digit phone number. Send <code>"undefined"</code> if not available.</td>
+        <td><code>"bab0ffc..."</code></td>
+      </tr>
+      <tr>
+        <td>ss_custom_session_id</td>
+        <td><span class="tag tag-string">string</span></td>
+        <td>Server-generated session identifier. Provided by the backend — the frontend just forwards it.</td>
+        <td><code>"1703445343"</code></td>
+      </tr>
+      <tr>
+        <td>ss_custom_client_id</td>
+        <td><span class="tag tag-string">string</span></td>
+        <td>Server-generated device/client identifier. Provided by the backend — the frontend just forwards it.</td>
+        <td><code>"A43d-b834-gLkJ4Y78-1703445343"</code></td>
+      </tr>
+      <tr>
+        <td>prov_mkt_id</td>
+        <td><span class="tag tag-string">string</span></td>
+        <td>Marketing campaign identifier. Read from the URL or provided by the backend.</td>
+        <td><code>"x36cy7k92j"</code></td>
+      </tr>
+      <tr>
+        <td>entry_location</td>
+        <td><span class="tag tag-string">string</span></td>
+        <td>Where the user entered the loan funnel from.</td>
+        <td><code>"Main Page"</code> / <code>"Landing Page"</code> / <code>"Product Page"</code> / <code>"Other"</code></td>
+      </tr>
+    </table>
+
+    <h2>Hashing Rules</h2>
+    <p>All PII must be hashed before being pushed to the dataLayer. The process must happen in the frontend (client-side) or in a controlled backend endpoint — never by passing raw data through GTM.</p>
+
+    <h3>Email → email_sha</h3>
+    <ul class="rule-list">
+      <li>Lowercase the entire email address (e.g. <code><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d085a3b5a29095a8b1bda0bcb5feb3bfbd">[email&#160;protected]</a></code> → <code><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1f6a6c7a6d5f7a677e726f737a317c7072">[email&#160;protected]</a></code>)</li>
+      <li>Trim all leading and trailing whitespace</li>
+      <li>Apply SHA-256 hashing to the result</li>
+      <li>If the email is not yet available, push the literal string <code>"undefined"</code> (not JavaScript <code>undefined</code>)</li>
+    </ul>
+
+    <h3>Phone → tel_sha</h3>
+    <ul class="rule-list">
+      <li>Remove the country code <code>+48</code> if present</li>
+      <li>Remove all spaces and non-numeric characters</li>
+      <li>Keep the resulting 9-digit local number</li>
+      <li>Apply SHA-256 hashing</li>
+      <li>If unavailable, push the literal string <code>"undefined"</code></li>
+    </ul>
+
+    <div class="callout callout-danger"><strong>Privacy rule:</strong> Raw email addresses and phone numbers must never appear in the dataLayer or be sent to any marketing vendor. Only SHA-256 hashed values are permitted. This is a GDPR requirement.</div>
+  </section>
+
+  <!-- ══════════════════════════ LOAN MODEL ══════════════════════════ -->
+  <section id="loan-model">
+    <h1>Loan Data Model</h1>
+    <p class="lead">The Provi Direct long-form application uses a structured data model that must be included in every application event (<code>checkout</code> and <code>purchase</code>). This section defines all the building blocks.</p>
+
+    <p>Each application event contains six groups of data:</p>
+    <ul class="rule-list">
+      <li>Loan product definition (<code>ecommerce.items</code>)</li>
+      <li>Application state (step name, IDs)</li>
+      <li>User identity (hashed email, phone, customer type)</li>
+      <li>Session / device identifiers</li>
+      <li>Loan amount and term model</li>
+      <li>Marketing and entry context</li>
+    </ul>
+
+    <h2>Items Array — The Loan Product</h2>
+    <p>The loan product is represented as a single item inside <code>ecommerce.items</code>. The array always contains exactly one element because a single application concerns one product. Quantity is always <code>1</code>.</p>
+
+    <table class="params-table">
+      <tr><th>Parameter</th><th>Type</th><th>Description</th><th>Example</th></tr>
+      <tr><td>item_name</td><td><span class="tag tag-string">string</span></td><td>Display name of the loan product. Allowed values: <code>"STL"</code>, <code>"Digital Credit Card"</code>, <code>"Instalment Loan"</code></td><td><code>"Instalment Loan"</code></td></tr>
+      <tr><td>item_id</td><td><span class="tag tag-string">string</span></td><td>Internal product identifier. May be empty string <code>""</code> if the system hasn't provided one yet.</td><td><code>"NPP"</code></td></tr>
+      <tr><td>item_category</td><td><span class="tag tag-string">string</span></td><td>Always <code>"Loan"</code> for loan applications. Always <code>"DCC"</code> for credit cards. Must be consistent across all steps.</td><td><code>"Loan"</code></td></tr>
+      <tr><td>item_variant</td><td><span class="tag tag-string">string</span></td><td>Loan product variant. Must be consistent across all steps.</td><td><code>"Standard"</code></td></tr>
+      <tr><td>price</td><td><span class="tag tag-number">number</span></td><td>The most relevant loan amount for the current step — follows the Loan Amount Propagation Rules below.</td><td><code>5000</code></td></tr>
+      <tr><td>quantity</td><td><span class="tag tag-number">number</span></td><td>Always <code>1</code>.</td><td><code>1</code></td></tr>
+    </table>
+
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS — items array structure</span></div>
+      <div class="code-body"><span class="key">items</span>: [
+  {
+    <span class="key">item_name</span>: <span class="str">"Instalment Loan"</span>,
+    <span class="key">item_id</span>: <span class="str">"NPP"</span>,
+    <span class="key">item_category</span>: <span class="str">"Loan"</span>,
+    <span class="key">item_variant</span>: <span class="str">"naCodzien"</span>,
+    <span class="key">price</span>: <span class="num">5000</span>,
+    <span class="key">quantity</span>: <span class="num">1</span>
+  }
+]</div>
+    </div>
+
+    <h2>Application-Scoped Parameters</h2>
+    <p>These flat parameters sit at the root of every <code>checkout</code> and <code>purchase</code> event, alongside the <code>ecommerce</code> object.</p>
+
+    <h3>Application State</h3>
+    <table class="params-table">
+      <tr><th>Parameter</th><th>Type</th><th>Description</th><th>Example</th></tr>
+      <tr><td>page_type</td><td><span class="tag tag-string">string</span></td><td>Always <code>"ecommerce"</code> for loan application steps.</td><td><code>"ecommerce"</code></td></tr>
+      <tr><td>step_name</td><td><span class="tag tag-string">string</span></td><td>The URL slug or logical name of the current application step.</td><td><code>"identity-details"</code></td></tr>
+      <tr><td>transactionId</td><td><span class="tag tag-string">string</span></td><td>Unique transaction identifier (e.g. affiliateId). Use <code>"undefined"</code> if not yet available.</td><td><code>"425454542"</code></td></tr>
+      <tr><td>applicationId</td><td><span class="tag tag-string">string</span></td><td>Backend loan application identifier (UUID). Use <code>"undefined"</code> if not yet assigned.</td><td><code>"1f3680c9-ff98-4f41-8783-f5d554e5a976"</code></td></tr>
+    </table>
+
+    <h3>Verification &amp; Session Identifiers</h3>
+    <table class="params-table">
+      <tr><th>Parameter</th><th>Type</th><th>Description</th><th>Example</th></tr>
+      <tr><td>verification_method</td><td><span class="tag tag-string">string</span></td><td>Verification method chosen by the user. Use <code>"undefined"</code> until selected.</td><td><code>"bank_login"</code></td></tr>
+      <tr><td>ss_custom_session_id</td><td><span class="tag tag-string">string</span></td><td>Server-side session identifier (from global context).</td><td><code>"1703445343"</code></td></tr>
+      <tr><td>ss_custom_client_id</td><td><span class="tag tag-string">string</span></td><td>Server-side device/client identifier (from global context).</td><td><code>"A43d-b834-gLkJ4Y78-1703445343"</code></td></tr>
+    </table>
+
+    <h3>Loan Amount Model</h3>
+    <p>The loan amount evolves through the application process. Four distinct amount fields track this journey. Not all are available on every step — follow the propagation rules below.</p>
+    <table class="params-table">
+      <tr><th>Parameter</th><th>Type</th><th>Description</th><th>Example</th></tr>
+      <tr><td>initial_loan_amount</td><td><span class="tag tag-number">number</span></td><td>The amount the user selected at the very start of their application.</td><td><code>8000</code></td></tr>
+      <tr><td>proposed_loan_amount</td><td><span class="tag tag-number">number</span></td><td>The first amount proposed by the system after internal risk evaluation.</td><td><code>6000</code></td></tr>
+      <tr><td>final_loan_amount</td><td><span class="tag tag-number">number</span></td><td>The final offer amount shown to the user before acceptance.</td><td><code>5000</code></td></tr>
+      <tr><td>accepted_loan_amount</td><td><span class="tag tag-number">number</span></td><td>The amount the user actually accepted and submitted.</td><td><code>5000</code></td></tr>
+    </table>
+
+    <h3>Loan Amount Propagation Rules</h3>
+    <p>Which amount fields are required depends on how far through the process the user is. Earlier steps don't have all four values yet.</p>
+    <table class="prop-table">
+      <tr><th>Step in the application</th><th>Required amount fields</th></tr>
+      <tr><td>Early steps — contact, identity, address</td><td><code>initial_loan_amount</code> only. Others may be <code>undefined</code>.</td></tr>
+      <tr><td>Offer generation — digital-offer step</td><td><code>initial_loan_amount</code> + <code>proposed_loan_amount</code></td></tr>
+      <tr><td>Final offer step</td><td><code>final_loan_amount</code> MUST appear</td></tr>
+      <tr><td>Checklist-consent step</td><td><code>accepted_loan_amount</code> MUST appear</td></tr>
+      <tr><td>purchase (final confirmation)</td><td>All four fields are required: <code>initial_loan_amount</code>, <code>proposed_loan_amount</code>, <code>final_loan_amount</code>, <code>accepted_loan_amount</code></td></tr>
+    </table>
+
+    <div class="callout callout-info"><code>ecommerce.value</code> and <code>items[0].price</code> should always mirror the most contextually relevant amount for each step (initial → proposed → final → accepted), following the propagation rules above.</div>
+
+    <h3>Loan Terms</h3>
+    <table class="params-table">
+      <tr><th>Parameter</th><th>Type</th><th>Description</th><th>Example</th></tr>
+      <tr><td>requested_term</td><td><span class="tag tag-string">string</span></td><td>Loan duration selected by the user at the start (in months). Use empty string <code>""</code> until known.</td><td><code>"24"</code></td></tr>
+      <tr><td>accepted_term</td><td><span class="tag tag-string">string</span></td><td>The final accepted loan term. Use empty string <code>""</code> until confirmed.</td><td><code>"24"</code></td></tr>
+    </table>
+  </section>
+
+  <!-- ══════════════════════════ CHECKOUT ══════════════════════════ -->
+  <section id="checkout">
+    <span class="section-tag">event</span>
+    <h1>checkout</h1>
+    <p class="lead">Fires once each time the user enters or loads a new step in the Provi Direct loan application. It acts as both a page view and an ecommerce step event.</p>
+
+    <div class="callout callout-info">
+      <strong>When to fire:</strong> On every application step load (virtual page view). This includes steps at paths like <code>/application/new-contact-details</code>, <code>/application/marketing-consent</code>, and all other steps in the loan funnel.
+    </div>
+
+    <div class="callout callout-warn"><strong>Mandatory ecommerce reset:</strong> Always push <code>{ ecommerce: null }</code> immediately before this event — no exceptions.</div>
+
+    <h2>Payload — First Step Example</h2>
+    <p>At the first step, only the initial loan amount is known. All other amounts and identifiers are <code>undefined</code> until the application progresses.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'checkout-payload')">Copy</button></div>
+      <div class="code-body" id="checkout-payload">window.dataLayer = window.dataLayer || [];
+window.dataLayer.push({ <span class="key">ecommerce</span>: <span class="undef">null</span> }); <span class="cmt">// REQUIRED: reset ecommerce first</span>
+
+window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"checkout"</span>,
+  <span class="key">page_type</span>: <span class="str">"ecommerce"</span>,
+  <span class="key">step_name</span>: <span class="str">"new-contact-details"</span>,
+  <span class="key">transactionId</span>: <span class="str">"undefined"</span>,          <span class="cmt">// not yet available</span>
+  <span class="key">applicationId</span>: <span class="str">"undefined"</span>,          <span class="cmt">// not yet available</span>
+  <span class="key">email_sha</span>: <span class="str">"undefined"</span>,
+  <span class="key">tel_sha</span>: <span class="str">"undefined"</span>,
+  <span class="key">user_status</span>: <span class="str">"undefined"</span>,
+  <span class="key">verification_method</span>: <span class="str">"undefined"</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+  <span class="key">initial_loan_amount</span>: <span class="num">8000</span>,
+  <span class="key">proposed_loan_amount</span>: <span class="undef">undefined</span>,
+  <span class="key">final_loan_amount</span>: <span class="undef">undefined</span>,
+  <span class="key">accepted_loan_amount</span>: <span class="undef">undefined</span>,
+  <span class="key">entry_location</span>: <span class="str">"Landing page"</span>,
+  <span class="key">requested_term</span>: <span class="str">""</span>,
+  <span class="key">accepted_term</span>: <span class="str">""</span>,
+  <span class="key">user_logged_in</span>: <span class="bool">false</span>,
+  <span class="key">login_method</span>: <span class="str">"unknown"</span>,
+  <span class="key">ecommerce</span>: {
+    <span class="key">value</span>: <span class="num">8000</span>,
+    <span class="key">currency</span>: <span class="str">"PLN"</span>,
+    <span class="key">items</span>: [
+      {
+        <span class="key">item_name</span>: <span class="str">"Instalment Loan"</span>,
+        <span class="key">item_category</span>: <span class="str">"Loan"</span>,
+        <span class="key">item_variant</span>: <span class="str">"naCodzien"</span>,
+        <span class="key">item_id</span>: <span class="str">""</span>,
+        <span class="key">price</span>: <span class="num">8000</span>,
+        <span class="key">quantity</span>: <span class="num">1</span>
+      }
+    ]
+  }
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ PURCHASE ══════════════════════════ -->
+  <section id="purchase">
+    <span class="section-tag">event</span>
+    <h1>purchase</h1>
+    <p class="lead">Fires once when the user successfully submits their loan application and lands on the confirmation page.</p>
+
+    <div class="callout callout-info"><strong>When to fire:</strong> Once only, on the thank-you page at <code>/application/verification/digital/thankyou</code>. Do not fire on error states or intermediate confirmation screens.</div>
+
+    <div class="callout callout-warn"><strong>Mandatory ecommerce reset:</strong> Always push <code>{ ecommerce: null }</code> immediately before this event. All four loan amount fields are required at this stage.</div>
+
+    <h2>Payload</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'purchase-payload')">Copy</button></div>
+      <div class="code-body" id="purchase-payload">window.dataLayer = window.dataLayer || [];
+window.dataLayer.push({ <span class="key">ecommerce</span>: <span class="undef">null</span> }); <span class="cmt">// REQUIRED: reset ecommerce first</span>
+
+window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"purchase"</span>,
+  <span class="key">page_type</span>: <span class="str">"ecommerce"</span>,
+  <span class="key">step_name</span>: <span class="str">"purchase"</span>,
+  <span class="key">transactionId</span>: <span class="str">"425454542"</span>,           <span class="cmt">// required at this stage</span>
+  <span class="key">applicationId</span>: <span class="str">"1f3680c9-ff98-4f41-8783-f5d554e5a976"</span>,
+  <span class="key">email_sha</span>: <span class="str">"b1d5b9bd..."</span>,
+  <span class="key">tel_sha</span>: <span class="str">"bab0ffc..."</span>,
+  <span class="key">user_status</span>: <span class="str">"NC"</span>,
+  <span class="key">verification_method</span>: <span class="str">"bank_login"</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+  <span class="key">initial_loan_amount</span>: <span class="num">8000</span>,             <span class="cmt">// all four required on purchase</span>
+  <span class="key">proposed_loan_amount</span>: <span class="num">6000</span>,
+  <span class="key">final_loan_amount</span>: <span class="num">5000</span>,
+  <span class="key">accepted_loan_amount</span>: <span class="num">5000</span>,
+  <span class="key">entry_location</span>: <span class="str">"Landing page"</span>,
+  <span class="key">requested_term</span>: <span class="str">"24"</span>,
+  <span class="key">accepted_term</span>: <span class="str">"24"</span>,
+  <span class="key">user_logged_in</span>: <span class="bool">false</span>,
+  <span class="key">login_method</span>: <span class="str">"unknown"</span>,
+  <span class="key">ecommerce</span>: {
+    <span class="key">value</span>: <span class="num">5000</span>,                             <span class="cmt">// final accepted amount</span>
+    <span class="key">currency</span>: <span class="str">"PLN"</span>,
+    <span class="key">items</span>: [
+      {
+        <span class="key">item_name</span>: <span class="str">"Instalment Loan"</span>,
+        <span class="key">item_category</span>: <span class="str">"Loan"</span>,
+        <span class="key">item_variant</span>: <span class="str">"Standard"</span>,
+        <span class="key">item_id</span>: <span class="str">"NPP"</span>,
+        <span class="key">price</span>: <span class="num">5000</span>,
+        <span class="key">quantity</span>: <span class="num">1</span>
+      }
+    ]
+  }
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ FORM PAGE VIEW ══════════════════════════ -->
+  <section id="form-page-view">
+    <span class="section-tag">event</span>
+    <h1>form_page_view</h1>
+    <p class="lead">Fires when a user opens a short form page. This is the short-form equivalent of a page view.</p>
+
+    <div class="callout callout-info"><strong>When to fire:</strong> Immediately upon rendering the short form component, before the user interacts with any fields.</div>
+
+    <h2>Payload</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'fpv-payload')">Copy</button></div>
+      <div class="code-body" id="fpv-payload">window.dataLayer = window.dataLayer || [];
+
+window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"form_page_view"</span>,
+  <span class="key">page_type</span>: <span class="str">"short_forms"</span>,
+  <span class="key">step_name</span>: <span class="str">"/afiliacja"</span>,          <span class="cmt">// URL path of the short form</span>
+  <span class="key">transactionId</span>: <span class="undef">undefined</span>,
+  <span class="key">applicationId</span>: <span class="undef">undefined</span>,
+  <span class="key">email_sha</span>: <span class="str">"undefined"</span>,
+  <span class="key">tel_sha</span>: <span class="str">"undefined"</span>,
+  <span class="key">user_status</span>: <span class="str">"undefined"</span>,
+  <span class="key">user_logged_in</span>: <span class="bool">false</span>,
+  <span class="key">login_method</span>: <span class="str">"unknown"</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+  <span class="key">prov_mkt_id</span>: <span class="str">"x36cy7k92j"</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ GENERATE LEAD ══════════════════════════ -->
+  <section id="generate-lead">
+    <span class="section-tag">event</span>
+    <h1>generate_lead</h1>
+    <p class="lead">Fires when a short form is successfully submitted and the user lands on the corresponding thank-you page.</p>
+
+    <div class="callout callout-info"><strong>When to fire:</strong> On the thank-you page at <code>/xxx/thankyou</code> after a successful short form submission. By this point, user identity fields (email, phone, applicationId) should be available.</div>
+
+    <h2>Payload</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'lead-payload')">Copy</button></div>
+      <div class="code-body" id="lead-payload">window.dataLayer = window.dataLayer || [];
+
+window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"generate_lead"</span>,
+  <span class="key">page_type</span>: <span class="str">"short_forms"</span>,
+  <span class="key">step_name</span>: <span class="str">"/afiliacja"</span>,
+  <span class="key">transactionId</span>: <span class="str">"XXX"</span>,
+  <span class="key">applicationId</span>: <span class="str">"47498582"</span>,
+  <span class="key">email_sha</span>: <span class="str">"b1d5b9bd..."</span>,
+  <span class="key">tel_sha</span>: <span class="str">"bab0ffc..."</span>,
+  <span class="key">user_status</span>: <span class="str">"NC"</span>,
+  <span class="key">user_logged_in</span>: <span class="bool">false</span>,
+  <span class="key">login_method</span>: <span class="str">"unknown"</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+  <span class="key">prov_mkt_id</span>: <span class="str">"x36cy7k92j"</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ LANDING PAGE ══════════════════════════ -->
+  <section id="landing-page">
+    <span class="section-tag">event</span>
+    <h1>page_view — Landing Pages</h1>
+    <p class="lead">Used to identify and attribute traffic entering specific marketing landing pages. Landing pages are distinct from product pages or content pages and must be identified with <code>page_type: "landing_page"</code>.</p>
+
+    <div class="callout callout-info"><strong>When to fire:</strong> Upon rendering a standalone landing page component.</div>
+
+    <h2>Payload</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'lp-payload')">Copy</button></div>
+      <div class="code-body" id="lp-payload">window.dataLayer = window.dataLayer || [];
+
+window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"page_view"</span>,
+  <span class="key">page_type</span>: <span class="str">"landing_page"</span>,           <span class="cmt">// identifies this as a landing page</span>
+  <span class="key">page_name</span>: <span class="str">"Wiosenna Promocja"</span>,       <span class="cmt">// human-readable LP title</span>
+  <span class="key">page_path</span>: <span class="str">"/lp/wiosenna-promocja"</span>,
+
+  <span class="cmt">// Global Context</span>
+  <span class="key">user_logged_in</span>: <span class="bool">false</span>,
+  <span class="key">login_method</span>: <span class="str">"unknown"</span>,
+  <span class="key">user_status</span>: <span class="str">"NC"</span>,
+  <span class="key">email_sha</span>: <span class="str">"undefined"</span>,
+  <span class="key">tel_sha</span>: <span class="str">"undefined"</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+
+  <span class="cmt">// Marketing Identifiers — critical for LP attribution</span>
+  <span class="key">prov_mkt_id</span>: <span class="str">"x36cy7k92j"</span>,
+  <span class="key">entry_location</span>: <span class="str">"Landing Page"</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ FIELD BLUR ══════════════════════════ -->
+  <section id="field-blur">
+    <span class="section-tag op">gaevent</span>
+    <h1>Field-Level Event — On Blur</h1>
+    <p class="lead">Fired every time a user leaves a form field (on blur). Tracks the field's final state, how long the user spent on it, and any error that occurred.</p>
+
+    <div class="callout callout-info">
+      <strong>When to fire:</strong> On blur from every field in the loan application form and short forms — regardless of whether the field is valid, empty, or has an error. Always fire.
+    </div>
+
+    <h2>Parameters</h2>
+    <table class="params-table">
+      <tr><th>Parameter</th><th>Type</th><th>Description</th><th>Example</th></tr>
+      <tr><td>event</td><td><span class="tag tag-string">string</span></td><td>Always <code>"gaevent"</code></td><td><code>"gaevent"</code></td></tr>
+      <tr><td>step_name</td><td><span class="tag tag-string">string</span></td><td>Current logical step or screen name.</td><td><code>"new-contact-details"</code></td></tr>
+      <tr><td>category</td><td><span class="tag tag-string">string</span></td><td>For Provi Direct: <code>"Main form -- Form Field"</code>. For short forms: <code>"Short form (request a call) -- Form field"</code></td><td><code>"Main form -- Form Field"</code></td></tr>
+      <tr><td>action</td><td><span class="tag tag-string">string</span></td><td>Final state of the field when the user left it.</td><td><code>"Filled"</code> / <code>"Empty"</code> / <code>"Error"</code></td></tr>
+      <tr><td>label</td><td><span class="tag tag-string">string</span></td><td>Logical name of the field.</td><td><code>"email"</code> / <code>"PESEL"</code></td></tr>
+      <tr><td>value</td><td><span class="tag tag-optional">optional</span></td><td>The selected value — only for selects, checkboxes, and consents.</td><td><code>"YES"</code></td></tr>
+      <tr><td>fieldTryNumber</td><td><span class="tag tag-number">number</span></td><td>How many times the user has interacted with this field (attempt counter).</td><td><code>2</code></td></tr>
+      <tr><td>fieldTime</td><td><span class="tag tag-number">number</span></td><td>Time (seconds) spent on the current attempt.</td><td><code>0.429</code></td></tr>
+      <tr><td>total_fieldTime</td><td><span class="tag tag-number">number</span></td><td>Cumulative total time spent on this field across all attempts.</td><td><code>1.947</code></td></tr>
+      <tr><td>stepTime</td><td><span class="tag tag-number">number</span></td><td>Total time elapsed on the current step when this blur event fired.</td><td><code>145.828</code></td></tr>
+      <tr><td>fieldError</td><td><span class="tag tag-string">string</span></td><td>Error type if validation failed. <code>undefined</code> if the field is valid.</td><td><code>"empty"</code> / <code>"error"</code> / <code>undefined</code></td></tr>
+      <tr><td>field_error_message</td><td><span class="tag tag-string">string</span></td><td>The exact error message shown to the user. <code>undefined</code> if no error.</td><td><code>"This field is required"</code></td></tr>
+    </table>
+
+    <h2>Example: Field Left Empty</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS — field error state</span><button class="copy-btn" onclick="copyCode(this,'blur-error')">Copy</button></div>
+      <div class="code-body" id="blur-error">dataLayer.push({
+  <span class="key">event</span>: <span class="str">"gaevent"</span>,
+  <span class="key">step_name</span>: <span class="str">"new-contact-details"</span>,
+  <span class="key">category</span>: <span class="str">"Main form -- Form Field"</span>,
+  <span class="key">action</span>: <span class="str">"Error"</span>,
+  <span class="key">label</span>: <span class="str">"PESEL"</span>,
+  <span class="key">fieldTryNumber</span>: <span class="num">2</span>,
+  <span class="key">fieldTime</span>: <span class="num">0.429</span>,
+  <span class="key">total_fieldTime</span>: <span class="num">1.947</span>,
+  <span class="key">fieldError</span>: <span class="str">"empty"</span>,
+  <span class="key">field_error_message</span>: <span class="str">"Twój numer PESEL jest nam potrzebny do rozpatrzenia wniosku."</span>,
+  <span class="key">stepTime</span>: <span class="num">145.828</span>
+});</div>
+    </div>
+
+    <h2>Example: Field Filled Correctly</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS — field valid state</span><button class="copy-btn" onclick="copyCode(this,'blur-valid')">Copy</button></div>
+      <div class="code-body" id="blur-valid">dataLayer.push({
+  <span class="key">event</span>: <span class="str">"gaevent"</span>,
+  <span class="key">step_name</span>: <span class="str">"new-contact-details"</span>,
+  <span class="key">category</span>: <span class="str">"Main form -- Form Field"</span>,
+  <span class="key">action</span>: <span class="str">"Filled"</span>,
+  <span class="key">label</span>: <span class="str">"PESEL"</span>,
+  <span class="key">fieldTryNumber</span>: <span class="num">1</span>,
+  <span class="key">fieldTime</span>: <span class="num">1.200</span>,
+  <span class="key">total_fieldTime</span>: <span class="num">1.200</span>,
+  <span class="key">fieldError</span>: <span class="undef">undefined</span>,
+  <span class="key">field_error_message</span>: <span class="undef">undefined</span>,
+  <span class="key">stepTime</span>: <span class="num">80.550</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ STEP VALIDATION ══════════════════════════ -->
+  <section id="step-validation">
+    <span class="section-tag op">gaevent</span>
+    <h1>Step-Level Validation — On "Next"</h1>
+    <p class="lead">Fired every time a user clicks the "Next" button on a step. Captures whether the step passed validation, how many attempts were made, and which fields caused failures.</p>
+
+    <div class="callout callout-info"><strong>When to fire:</strong> On every "Next" button click — regardless of whether the step is valid or invalid. Fire even on repeated failed attempts.</div>
+
+    <h2>Step-Level Parameters</h2>
+    <table class="params-table">
+      <tr><th>Parameter</th><th>Type</th><th>Description</th><th>Example</th></tr>
+      <tr><td>event</td><td><span class="tag tag-string">string</span></td><td>Always <code>"gaevent"</code></td><td><code>"gaevent"</code></td></tr>
+      <tr><td>step_name</td><td><span class="tag tag-string">string</span></td><td>Name of the current logical step.</td><td><code>"address-details"</code></td></tr>
+      <tr><td>category</td><td><span class="tag tag-string">string</span></td><td>Always <code>"Main form"</code></td><td><code>"Main form"</code></td></tr>
+      <tr><td>validationResult</td><td><span class="tag tag-string">string</span></td><td>Outcome of the step validation.</td><td><code>"VALID"</code> / <code>"INVALID"</code></td></tr>
+      <tr><td>stepTryNumber</td><td><span class="tag tag-number">number</span></td><td>Number of times the user has tried to proceed past this step.</td><td><code>2</code></td></tr>
+      <tr><td>stepTime</td><td><span class="tag tag-number">number</span></td><td>Time (seconds) spent on this step so far.</td><td><code>112.63</code></td></tr>
+      <tr><td>total_stepsTime</td><td><span class="tag tag-number">number</span></td><td>Cumulative time spent across all previous steps.</td><td><code>456.63</code></td></tr>
+      <tr><td>stepErrors</td><td><span class="tag tag-object">array</span></td><td>Array of error objects for each blocking field. <code>undefined</code> if no errors.</td><td><code>[{ ... }]</code></td></tr>
+    </table>
+
+    <h3>Structure of each <code>stepErrors</code> object</h3>
+    <table class="params-table">
+      <tr><th>Field</th><th>Type</th><th>Description</th><th>Example</th></tr>
+      <tr><td>fieldName</td><td><span class="tag tag-string">string</span></td><td>The logical name of the field that blocked progress.</td><td><code>"PESEL"</code></td></tr>
+      <tr><td>fieldError</td><td><span class="tag tag-string">string</span></td><td>Error type.</td><td><code>"empty"</code> / <code>"error"</code></td></tr>
+      <tr><td>field_error_message</td><td><span class="tag tag-string">string</span></td><td>The exact error message shown to the user.</td><td><code>"This field is required."</code></td></tr>
+    </table>
+
+    <h2>Example: Invalid Step</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS — step invalid</span><button class="copy-btn" onclick="copyCode(this,'step-invalid')">Copy</button></div>
+      <div class="code-body" id="step-invalid">dataLayer.push({
+  <span class="key">event</span>: <span class="str">"gaevent"</span>,
+  <span class="key">step_name</span>: <span class="str">"new-contact-details"</span>,
+  <span class="key">category</span>: <span class="str">"Main form"</span>,
+  <span class="key">validationResult</span>: <span class="str">"INVALID"</span>,
+  <span class="key">stepTryNumber</span>: <span class="num">2</span>,
+  <span class="key">stepTime</span>: <span class="num">112.63</span>,
+  <span class="key">total_stepsTime</span>: <span class="num">456.63</span>,
+  <span class="key">stepErrors</span>: [
+    {
+      <span class="key">fieldName</span>: <span class="str">"PESEL"</span>,
+      <span class="key">fieldError</span>: <span class="str">"empty"</span>,
+      <span class="key">field_error_message</span>: <span class="str">"Puste pole"</span>
+    }
+  ]
+});</div>
+    </div>
+
+    <h2>Example: Valid Step</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS — step valid</span><button class="copy-btn" onclick="copyCode(this,'step-valid')">Copy</button></div>
+      <div class="code-body" id="step-valid">dataLayer.push({
+  <span class="key">event</span>: <span class="str">"gaevent"</span>,
+  <span class="key">step_name</span>: <span class="str">"new-contact-details"</span>,
+  <span class="key">category</span>: <span class="str">"Main form"</span>,
+  <span class="key">validationResult</span>: <span class="str">"VALID"</span>,
+  <span class="key">stepTryNumber</span>: <span class="num">1</span>,
+  <span class="key">stepTime</span>: <span class="num">90.12</span>,
+  <span class="key">total_stepsTime</span>: <span class="num">300.45</span>,
+  <span class="key">stepErrors</span>: <span class="undef">undefined</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ SELECT ERRORS ══════════════════════════ -->
+  <section id="select-errors">
+    <span class="section-tag op">gaevent</span>
+    <h1>Selects, Checkboxes &amp; Consents</h1>
+    <p class="lead">Non-text fields (dropdowns, checkboxes, radio buttons, consent toggles) use the same field-level event model as text inputs. No special handling is needed — just include the <code>value</code> field.</p>
+
+    <div class="callout callout-info">The only difference from a text field event is that <code>value</code> is populated for these types (e.g. <code>"YES"</code> / <code>"NO"</code> for consents), whereas it is optional for text inputs.</div>
+
+    <h2>Example: Consent Correctly Selected</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS — consent accepted</span><button class="copy-btn" onclick="copyCode(this,'consent-ok')">Copy</button></div>
+      <div class="code-body" id="consent-ok">dataLayer.push({
+  <span class="key">event</span>: <span class="str">"gaevent"</span>,
+  <span class="key">step_name</span>: <span class="str">"marketing-consent"</span>,
+  <span class="key">category</span>: <span class="str">"Main form -- Form Field"</span>,
+  <span class="key">action</span>: <span class="str">"Filled"</span>,
+  <span class="key">label</span>: <span class="str">"zgoda_marketingowa"</span>,
+  <span class="key">value</span>: <span class="str">"YES"</span>,
+  <span class="key">fieldTryNumber</span>: <span class="num">1</span>,
+  <span class="key">fieldTime</span>: <span class="num">0.8</span>,
+  <span class="key">total_fieldTime</span>: <span class="num">0.8</span>,
+  <span class="key">fieldError</span>: <span class="undef">undefined</span>,
+  <span class="key">field_error_message</span>: <span class="undef">undefined</span>,
+  <span class="key">stepTime</span>: <span class="num">42.00</span>
+});</div>
+    </div>
+
+    <h2>Example: Consent Missing (Error)</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS — consent missing</span><button class="copy-btn" onclick="copyCode(this,'consent-err')">Copy</button></div>
+      <div class="code-body" id="consent-err">dataLayer.push({
+  <span class="key">event</span>: <span class="str">"gaevent"</span>,
+  <span class="key">step_name</span>: <span class="str">"marketing-consent"</span>,
+  <span class="key">category</span>: <span class="str">"Main form -- Form Field"</span>,
+  <span class="key">action</span>: <span class="str">"Error"</span>,
+  <span class="key">label</span>: <span class="str">"zgoda_marketingowa"</span>,
+  <span class="key">value</span>: <span class="str">"undefined"</span>,
+  <span class="key">fieldTryNumber</span>: <span class="num">1</span>,
+  <span class="key">fieldTime</span>: <span class="num">0.4</span>,
+  <span class="key">total_fieldTime</span>: <span class="num">0.4</span>,
+  <span class="key">fieldError</span>: <span class="str">"empty"</span>,
+  <span class="key">field_error_message</span>: <span class="str">"Musisz zaznaczyć tę zgodę, aby kontynuować."</span>,
+  <span class="key">stepTime</span>: <span class="num">12.30</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ LOGIN ══════════════════════════ -->
+  <section id="login">
+    <span class="section-tag">event</span>
+    <h1>login</h1>
+    <p class="lead">Fires immediately on successful authentication. Enriches the session with verified user identity — email hash, phone hash, and customer status become available at this point.</p>
+
+    <div class="callout callout-info"><strong>When to fire:</strong> Immediately upon successful login, before or during the redirect to the dashboard. Do not fire if authentication fails.</div>
+
+    <h2>Payload</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'login-payload')">Copy</button></div>
+      <div class="code-body" id="login-payload">window.dataLayer = window.dataLayer || [];
+
+window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"login"</span>,
+  <span class="key">page_type</span>: <span class="str">"login"</span>,
+  <span class="key">step_name</span>: <span class="str">"user-dashboard"</span>,
+  <span class="key">user_logged_in</span>: <span class="bool">true</span>,
+  <span class="key">login_method</span>: <span class="str">"pesel"</span>,
+  <span class="key">user_status</span>: <span class="str">"RS"</span>,
+  <span class="key">email_sha</span>: <span class="str">"b1d5b9bd..."</span>,
+  <span class="key">tel_sha</span>: <span class="str">"bab0ffc..."</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+  <span class="key">prov_mkt_id</span>: <span class="str">"x36cy7k92j"</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ DASHBOARD VIEW ══════════════════════════ -->
+  <section id="dashboard-view">
+    <span class="section-tag">event</span>
+    <h1>dashboard_view</h1>
+    <p class="lead">Fires when the dashboard is fully loaded for an authenticated user. Lists all active or visible products using the ecommerce items model.</p>
+
+    <div class="callout callout-info"><strong>When to fire:</strong> Once the dashboard component has fully loaded and all product data is available.</div>
+    <div class="callout callout-warn"><strong>Mandatory ecommerce reset:</strong> Always push <code>{ ecommerce: null }</code> immediately before this event.</div>
+
+    <h2>Payload</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'dash-payload')">Copy</button></div>
+      <div class="code-body" id="dash-payload">window.dataLayer = window.dataLayer || [];
+window.dataLayer.push({ <span class="key">ecommerce</span>: <span class="undef">null</span> });
+
+window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"dashboard_view"</span>,
+  <span class="key">page_type</span>: <span class="str">"user_dashboard"</span>,
+  <span class="key">step_name</span>: <span class="str">"user_dashboard"</span>,
+
+  <span class="cmt">// Global Context</span>
+  <span class="key">user_logged_in</span>: <span class="bool">true</span>,
+  <span class="key">login_method</span>: <span class="str">"pesel"</span>,
+  <span class="key">user_status</span>: <span class="str">"RS"</span>,
+  <span class="key">email_sha</span>: <span class="str">"b1d5b9bd..."</span>,
+  <span class="key">tel_sha</span>: <span class="str">"bab0ffc..."</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+  <span class="key">prov_mkt_id</span>: <span class="str">"x36cy7k92j"</span>,
+
+  <span class="cmt">// Dashboard State</span>
+  <span class="key">dashboard_status</span>: <span class="str">"active_loan"</span>,    <span class="cmt">// "active_loan" or "no_active_products"</span>
+  <span class="key">next_payment_date</span>: <span class="str">"2026-04-10"</span>,    <span class="cmt">// YYYY-MM-DD format, if applicable</span>
+
+  <span class="cmt">// Active Products (one item per product)</span>
+  <span class="key">ecommerce</span>: {
+    <span class="key">currency</span>: <span class="str">"PLN"</span>,
+    <span class="key">items</span>: [
+      {
+        <span class="key">item_name</span>: <span class="str">"Instalment Loan"</span>,
+        <span class="key">item_category</span>: <span class="str">"Loan"</span>,
+        <span class="key">item_variant</span>: <span class="str">"weekly"</span>,
+        <span class="key">item_id</span>: <span class="str">"NPP"</span>,
+        <span class="key">price</span>: <span class="num">3500.50</span>,            <span class="cmt">// outstanding balance</span>
+        <span class="key">quantity</span>: <span class="num">1</span>
+      },
+      {
+        <span class="key">item_name</span>: <span class="str">"Digital Credit Card"</span>,
+        <span class="key">item_category</span>: <span class="str">"DCC"</span>,
+        <span class="key">item_variant</span>: <span class="str">"Standard"</span>,
+        <span class="key">item_id</span>: <span class="str">"CARD_123"</span>,
+        <span class="key">price</span>: <span class="num">1200.00</span>,            <span class="cmt">// available limit or balance</span>
+        <span class="key">quantity</span>: <span class="num">1</span>
+      }
+    ]
+  }
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ CALCULATOR ══════════════════════════ -->
+  <section id="calculator">
+    <span class="section-tag">event</span>
+    <h1>calculator_update</h1>
+    <p class="lead">Fires when the loan calculator loads with its default values, and again every time the user changes any calculator setting. Captures the exact product configuration the user is exploring before they start an application.</p>
+
+    <div class="callout callout-warn">
+      <strong>Debounce is mandatory.</strong> Wait 300–500ms after the last user interaction before firing. Do not fire on every slider tick — this creates event spam that distorts analytics and wastes server-side processing.
+    </div>
+
+    <div class="callout callout-info">
+      <strong>Two trigger scenarios:</strong><br>
+      <code>calc_event_type: "default"</code> — when the calculator loads with prefilled or default values.<br>
+      <code>calc_event_type: "change"</code> — when the user changes amount, term, product, or installment type.
+    </div>
+
+    <h2>Parameters</h2>
+    <table class="params-table">
+      <tr><th>Parameter</th><th>Required</th><th>Description</th><th>Example</th></tr>
+      <tr><td>event</td><td><span class="tag tag-required">required</span></td><td>Always <code>"calculator_update"</code></td><td><code>"calculator_update"</code></td></tr>
+      <tr><td>page_type</td><td><span class="tag tag-required">required</span></td><td>Always <code>"calculator"</code></td><td><code>"calculator"</code></td></tr>
+      <tr><td>step_name</td><td><span class="tag tag-optional">optional</span></td><td>Logical location of the calculator on the page.</td><td><code>"calculator_main"</code></td></tr>
+      <tr><td>calc_event_type</td><td><span class="tag tag-required">required</span></td><td>Whether this is the initial load or a user-triggered change.</td><td><code>"default"</code> / <code>"change"</code></td></tr>
+      <tr><td>initial_loan_amount</td><td><span class="tag tag-required">required</span></td><td>Loan amount currently selected in the calculator.</td><td><code>3000</code></td></tr>
+      <tr><td>requested_term</td><td><span class="tag tag-required">required</span></td><td>Repayment duration currently selected.</td><td><code>60</code></td></tr>
+      <tr><td>calc_total_amount</td><td><span class="tag tag-required">required</span></td><td>Total repayment amount (loan + cost).</td><td><code>3800.00</code></td></tr>
+      <tr><td>calc_installment_amount</td><td><span class="tag tag-required">required</span></td><td>Value of a single installment.</td><td><code>63.33</code></td></tr>
+      <tr><td>calc_installment_type</td><td><span class="tag tag-required">required</span></td><td>Installment frequency.</td><td><code>"weekly"</code> / <code>"monthly"</code></td></tr>
+      <tr><td>ecommerce.currency</td><td><span class="tag tag-required">required</span></td><td>Always <code>"PLN"</code></td><td><code>"PLN"</code></td></tr>
+      <tr><td>ecommerce.value</td><td><span class="tag tag-required">required</span></td><td>The primary monetary value for analytics. Use <code>calc_total_amount</code>.</td><td><code>3800.00</code></td></tr>
+      <tr><td>ecommerce.items[0].price</td><td><span class="tag tag-required">required</span></td><td>Mirrors <code>initial_loan_amount</code>.</td><td><code>3000</code></td></tr>
+    </table>
+
+    <div class="callout callout-danger"><strong>Clean root object rule:</strong> The following fields must NOT appear at the root of the event — they belong only inside <code>ecommerce.items[0]</code>: <code>item_name</code>, <code>item_id</code>, <code>item_category</code>, <code>item_variant</code>.</div>
+
+    <h2>Payload Example</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'calc-payload')">Copy</button></div>
+      <div class="code-body" id="calc-payload">window.dataLayer.push({ <span class="key">ecommerce</span>: <span class="undef">null</span> }); <span class="cmt">// always reset first</span>
+
+window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"calculator_update"</span>,
+  <span class="key">page_type</span>: <span class="str">"calculator"</span>,
+  <span class="key">step_name</span>: <span class="str">"calculator_main"</span>,
+  <span class="key">calc_event_type</span>: <span class="str">"change"</span>,
+  <span class="key">initial_loan_amount</span>: <span class="num">3000</span>,
+  <span class="key">requested_term</span>: <span class="num">60</span>,
+  <span class="key">calc_total_amount</span>: <span class="num">3800.00</span>,
+  <span class="key">calc_installment_amount</span>: <span class="num">63.33</span>,
+  <span class="key">calc_installment_type</span>: <span class="str">"weekly"</span>,
+  <span class="key">ecommerce</span>: {
+    <span class="key">currency</span>: <span class="str">"PLN"</span>,
+    <span class="key">value</span>: <span class="num">3800.00</span>,
+    <span class="key">items</span>: [
+      {
+        <span class="key">item_name</span>: <span class="str">"Instalment Loan"</span>,
+        <span class="key">item_category</span>: <span class="str">"Loan"</span>,
+        <span class="key">item_variant</span>: <span class="str">"weekly"</span>,
+        <span class="key">item_id</span>: <span class="str">"NPP"</span>,
+        <span class="key">price</span>: <span class="num">3000</span>,
+        <span class="key">quantity</span>: <span class="num">1</span>
+      }
+    ]
+  }
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ PAGE VIEW SPA ══════════════════════════ -->
+  <section id="page-view-spa">
+    <span class="section-tag">event</span>
+    <h1>page_view — SPA Virtual Page Views</h1>
+    <p class="lead">In a Single Page Application (SPA), the browser does not reload between screens. This means GTM never sees a natural page load. The application must manually push a <code>page_view</code> event every time a new screen renders.</p>
+
+    <div class="callout callout-info">
+      <strong>When to fire:</strong> On every new logical view: Home, product pages, content/info pages, error pages.<br><br>
+      <strong>Exceptions:</strong> Loan application steps use <code>checkout</code>. Short forms use <code>form_page_view</code>. Do not double-fire.
+    </div>
+
+    <h2>Standard Page View</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS — product/home page</span><button class="copy-btn" onclick="copyCode(this,'pv-payload')">Copy</button></div>
+      <div class="code-body" id="pv-payload">window.dataLayer = window.dataLayer || [];
+
+window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"page_view"</span>,
+  <span class="key">page_type</span>: <span class="str">"product_page"</span>,     <span class="cmt">// "Main Page", "Product_Page", "Content", etc.</span>
+  <span class="key">page_name</span>: <span class="str">"Pożyczka Ratalna"</span>,    <span class="cmt">// human-readable page title</span>
+  <span class="key">page_path</span>: <span class="str">"/pozyczka-ratalna"</span>,   <span class="cmt">// clean URL — no PII in query strings</span>
+
+  <span class="cmt">// Global Context</span>
+  <span class="key">user_logged_in</span>: <span class="bool">false</span>,
+  <span class="key">login_method</span>: <span class="str">"unknown"</span>,
+  <span class="key">user_status</span>: <span class="str">"NC"</span>,
+  <span class="key">email_sha</span>: <span class="str">"undefined"</span>,
+  <span class="key">tel_sha</span>: <span class="str">"undefined"</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+  <span class="key">prov_mkt_id</span>: <span class="str">"x36cy7k92j"</span>
+});</div>
+    </div>
+
+    <h2>Error Pages (404 / 500)</h2>
+    <p>Error pages must be tracked explicitly using <code>page_type: "error"</code>. This allows monitoring of broken links and server failures within the SPA.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS — 404 / 500 error page</span><button class="copy-btn" onclick="copyCode(this,'pv-error')">Copy</button></div>
+      <div class="code-body" id="pv-error">window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"page_view"</span>,
+  <span class="key">page_type</span>: <span class="str">"error"</span>,
+  <span class="key">page_name</span>: <span class="str">"404 Not Found"</span>,
+  <span class="key">page_path</span>: <span class="str">"/broken-link-path"</span>,
+  <span class="key">error_code</span>: <span class="str">"404"</span>,
+  <span class="cmt">// ... global context fields</span>
+});</div>
+    </div>
+
+    <h2>Content Pages</h2>
+    <p>Informational and blog pages must use <code>page_type: "content_page"</code> to separate them from product, landing, and application views.</p>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS — content / blog page</span><button class="copy-btn" onclick="copyCode(this,'pv-content')">Copy</button></div>
+      <div class="code-body" id="pv-content">window.dataLayer.push({
+  <span class="key">event</span>: <span class="str">"page_view"</span>,
+  <span class="key">page_type</span>: <span class="str">"content_page"</span>,
+  <span class="key">page_name</span>: <span class="str">"Obsługa Zaległości"</span>,
+  <span class="key">page_path</span>: <span class="str">"/platnosci/obsluga-zaleglosci"</span>,
+  <span class="cmt">// ... global context fields</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ UI INTERACTION ══════════════════════════ -->
+  <section id="ui-interactions">
+    <span class="section-tag">event</span>
+    <h1>ui_interaction</h1>
+    <p class="lead">Tracks meaningful user interactions outside the loan application funnel — menu clicks, homepage banners, CTA buttons, FAQ expansions, and similar UI events.</p>
+
+    <h2>Payload Example — Homepage Banner Click</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'ui-payload')">Copy</button></div>
+      <div class="code-body" id="ui-payload">dataLayer.push({
+  <span class="key">event</span>: <span class="str">"ui_interaction"</span>,
+  <span class="key">interaction_category</span>: <span class="str">"Homepage Banner"</span>,
+  <span class="key">interaction_action</span>: <span class="str">"Click"</span>,
+  <span class="key">interaction_label</span>: <span class="str">"Get 3000 PLN loan"</span>,
+
+  <span class="cmt">// Global Context</span>
+  <span class="key">user_logged_in</span>: <span class="bool">false</span>,
+  <span class="key">login_method</span>: <span class="str">"unknown"</span>,
+  <span class="key">user_status</span>: <span class="str">"NC"</span>,
+  <span class="key">email_sha</span>: <span class="str">"undefined"</span>,
+  <span class="key">tel_sha</span>: <span class="str">"undefined"</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+  <span class="key">prov_mkt_id</span>: <span class="str">"x36cy7k92j"</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ DASHBOARD ACTION ══════════════════════════ -->
+  <section id="dashboard-action">
+    <span class="section-tag">event</span>
+    <h1>dashboard_action</h1>
+    <p class="lead">Tracks specific actions taken by authenticated users inside the dashboard — opening payment schedules, downloading documents, interacting with loan details.</p>
+
+    <h2>Payload Example — Open Payment Schedule</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'da-payload')">Copy</button></div>
+      <div class="code-body" id="da-payload">dataLayer.push({
+  <span class="key">event</span>: <span class="str">"dashboard_action"</span>,
+  <span class="key">action_name</span>: <span class="str">"OpenPaymentSchedule"</span>,
+  <span class="key">action_location</span>: <span class="str">"Instalment Loan Overview"</span>,
+  <span class="key">item_id</span>: <span class="str">"NPP"</span>,
+
+  <span class="cmt">// Global Context</span>
+  <span class="key">user_logged_in</span>: <span class="bool">true</span>,
+  <span class="key">login_method</span>: <span class="str">"pesel"</span>,
+  <span class="key">user_status</span>: <span class="str">"RS"</span>,
+  <span class="key">email_sha</span>: <span class="str">"b1d5b9bd..."</span>,
+  <span class="key">tel_sha</span>: <span class="str">"bab0ffc..."</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+  <span class="key">prov_mkt_id</span>: <span class="str">"x36cy7k92j"</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ LOGOUT ══════════════════════════ -->
+  <section id="logout">
+    <span class="section-tag">event</span>
+    <h1>logout</h1>
+    <p class="lead">Fired when the user signs out. Resets the session-level identity so future events are not incorrectly attributed to the previous user.</p>
+
+    <div class="callout callout-warn">After logout, <code>email_sha</code> and <code>tel_sha</code> must be explicitly sent as <code>"undefined"</code> — not omitted. This signals to sGTM that the identity has been cleared intentionally.</div>
+
+    <h2>Payload</h2>
+    <div class="code-block">
+      <div class="code-header"><span class="lang">JS</span><button class="copy-btn" onclick="copyCode(this,'logout-payload')">Copy</button></div>
+      <div class="code-body" id="logout-payload">dataLayer.push({
+  <span class="key">event</span>: <span class="str">"logout"</span>,
+  <span class="key">user_logged_in</span>: <span class="bool">false</span>,
+  <span class="key">ss_custom_session_id</span>: <span class="str">"1703445343"</span>,
+  <span class="key">ss_custom_client_id</span>: <span class="str">"A43d-b834-gLkJ-4Y78-1703445343"</span>,
+  <span class="key">email_sha</span>: <span class="str">"undefined"</span>,           <span class="cmt">// explicitly cleared</span>
+  <span class="key">tel_sha</span>: <span class="str">"undefined"</span>             <span class="cmt">// explicitly cleared</span>
+});</div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ SERVER-SIDE TAGGING ══════════════════════════ -->
+  <section id="sgtm">
+    <h1>Server-Side Tagging Architecture</h1>
+    <p class="lead">This section explains how the frontend dataLayer feeds into Server-Side Google Tag Manager (sGTM), and what each layer of the system is responsible for.</p>
+
+    <div class="hero">
+      <p>The architecture is <strong style="color:var(--accent)">privacy-first and vendor-agnostic</strong>. The frontend never speaks directly to any analytics or marketing vendor. All vendor communication, data transformation, and identity linking happens exclusively in sGTM — the central hub for the entire measurement ecosystem.</p>
+    </div>
+
+    <h2>Why This Architecture?</h2>
+    <div class="event-grid">
+      <div class="event-card">
+        <div class="ev-name">Privacy by design</div>
+        <div class="ev-desc">No vendor scripts run in the browser. No PII or vendor IDs are handled client-side. Only hashed identifiers cross the boundary.</div>
+      </div>
+      <div class="event-card">
+        <div class="ev-name">ITP / ETP resilience</div>
+        <div class="ev-desc">Server-generated <code>ss_custom_session_id</code> and <code>ss_custom_client_id</code> maintain attribution continuity in Safari, Firefox, and Chrome with 3PC deprecated.</div>
+      </div>
+      <div class="event-card">
+        <div class="ev-name">Stable frontend contract</div>
+        <div class="ev-desc">The dataLayer schema never needs to change when vendors add new requirements. All mapping happens server-side.</div>
+      </div>
+      <div class="event-card">
+        <div class="ev-name">Centralised logic</div>
+        <div class="ev-desc">Routing, identity linking, consent enforcement, and transformation happen once — in sGTM — not duplicated across systems.</div>
+      </div>
+    </div>
+
+    <h2>Three-Layer Responsibilities</h2>
+
+    <h3>Layer 1 — React Frontend</h3>
+    <ul class="rule-list">
+      <li>Push structured events exactly as defined in this document</li>
+      <li>Include only normalized business parameters — never vendor-specific fields</li>
+      <li>Forward hashed identifiers (SHA-256 only)</li>
+      <li>Include server-generated session identifiers verbatim</li>
+      <li>Reset ecommerce before every ecommerce event</li>
+      <li>Debounce rapid interactions</li>
+      <li><strong>Never</strong> implement GA4, Ads, Floodlight, or any other vendor logic</li>
+    </ul>
+
+    <h3>Layer 2 — GTM Web</h3>
+    <ul class="rule-list">
+      <li>Listens for dataLayer events</li>
+      <li>Extracts parameters and applies optional pre-validation</li>
+      <li>Forwards the complete payload to sGTM via HTTP</li>
+      <li>Attaches consent state</li>
+      <li>Contains no mapping or transformation logic</li>
+    </ul>
+
+    <h3>Layer 3 — Server-Side GTM (sGTM)</h3>
+    <ul class="rule-list">
+      <li>Receives normalized JSON payloads from GTM Web</li>
+      <li>Enriches with server timestamp, IP (if consented), User-Agent, geolocation</li>
+      <li>Applies business rules: privacy filtering, consent enforcement, validation</li>
+      <li>Maps and routes events to all configured destinations (GA4, Ads, CRM/CDP, BI)</li>
+      <li>All vendor-specific transformations happen here — nowhere else</li>
+    </ul>
+
+    <h2>Identity &amp; Session Model</h2>
+    <p>The same identity fields are used consistently across every event type — page views, calculator, short forms, long application, login, dashboard, and logout. This consistency allows sGTM to reconstruct complete customer journeys across:</p>
+    <ul class="rule-list">
+      <li>Anonymous visitor → lead → login → application → dashboard</li>
+      <li>Cross-device behaviour (via server IDs)</li>
+      <li>Repeat visits and ITP-restricted contexts (Safari / iOS)</li>
+    </ul>
+
+    <h2>Privacy &amp; Consent</h2>
+    <table class="params-table">
+      <tr><th>Layer</th><th>Responsibility</th></tr>
+      <tr><td>Frontend</td><td>No raw PII. Default Consent Mode set to denied before GTM loads. Runtime consent updates via CMP (OneTrust).</td></tr>
+      <tr><td>sGTM</td><td>Consent-based filtering. Suppression of identifiers for non-consenting users. No unnecessary PII stored. Propagation rules enforced for downstream systems.</td></tr>
+    </table>
+
+    <h2>Versioning &amp; Change Control</h2>
+    <p>This document represents <strong>v1</strong> of the canonical dataLayer schema.</p>
+    <div class="callout callout-warn">
+      <strong>Breaking changes</strong> (field renames, type changes, removals) require a new version (v2, v3...) with temporary dual-writing in sGTM and a communicated deprecation timeline.<br><br>
+      <strong>Non-breaking changes</strong> (new optional parameters, new event types, new metadata fields) can be added without a version bump.<br><br>
+      <strong>Core principle:</strong> The frontend dataLayer must remain as stable as possible. All complexity lives in sGTM.
+    </div>
+  </section>
+
+  <!-- ══════════════════════════ BOUNDARIES ══════════════════════════ -->
+  <section id="boundaries">
+    <h1>Implementation Boundaries</h1>
+    <p class="lead">Strict rules that govern what each layer of the system is and is not permitted to do. These boundaries are not guidelines — they are architectural requirements that must not be violated.</p>
+
+    <div class="callout callout-danger"><strong>Vendor Mapping Rule (critical):</strong> All vendor mapping, data transformation, enrichment, identity linking, and request routing MUST be performed exclusively inside the Server-Side GTM container. The frontend MUST NOT implement vendor-specific logic of any kind.</div>
+
+    <h2>Frontend Rules</h2>
+    <div class="boundary-grid">
+      <div class="boundary-card must">
+        <h4>Frontend MUST</h4>
+        <ul>
+          <li>Push events exactly as defined in this document</li>
+          <li>Include only normalized business parameters</li>
+          <li>Forward hashed identifiers (SHA-256)</li>
+          <li>Include server-generated session identifiers</li>
+          <li>Reset ecommerce before each ecommerce event</li>
+          <li>Respect debounce rules</li>
+        </ul>
+      </div>
+      <div class="boundary-card must-not">
+        <h4>Frontend MUST NOT</h4>
+        <ul>
+          <li>Implement GA4 mapping logic</li>
+          <li>Implement Ads / EC / Floodlight logic</li>
+          <li>Send requests directly to vendor APIs</li>
+          <li>Add vendor-specific parameters</li>
+          <li>Attempt identity linking or fingerprinting</li>
+          <li>Modify data for third-party purposes</li>
+          <li>Add fields not defined in this document</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Server-Only Responsibilities</h2>
+    <p>The following tasks belong exclusively to sGTM and must never be implemented in the frontend or GTM Web:</p>
+    <div class="boundary-grid">
+      <div class="boundary-card server">
+        <h4>Processing</h4>
+        <ul>
+          <li>Event routing</li>
+          <li>Consent enforcement</li>
+          <li>Vendor mapping</li>
+          <li>Identity linking</li>
+          <li>Data normalization</li>
+          <li>Payload transformation</li>
+        </ul>
+      </div>
+      <div class="boundary-card server">
+        <h4>Security &amp; Ops</h4>
+        <ul>
+          <li>Token handling</li>
+          <li>Request signing</li>
+          <li>Debugging and logging</li>
+          <li>De-duplication</li>
+          <li>Rate limiting</li>
+          <li>Traffic filtering</li>
+          <li>Error handling and retries</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>Benefits of This Architecture</h2>
+    <div class="benefits-grid">
+      <div class="benefit-pill">Strong governance</div>
+      <div class="benefit-pill">Zero vendor code in browser</div>
+      <div class="benefit-pill">Privacy-first &amp; future-proof</div>
+      <div class="benefit-pill">Stable frontend contract</div>
+      <div class="benefit-pill">Reduced maintenance</div>
+      <div class="benefit-pill">Central truth in sGTM</div>
+      <div class="benefit-pill">Simplified debugging</div>
+      <div class="benefit-pill">Easier vendor migrations</div>
+      <div class="benefit-pill">Reduced compliance risk</div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  function showSection(id, el) {
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    const sec = document.getElementById(id);
+    if (sec) sec.classList.add('active');
+    if (el && el.classList) el.classList.add('active');
+  }
+
+  function copyCode(btn, id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const text = el.innerText || el.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  function toggleTheme() {
+    const root = document.documentElement;
+    const btn = document.getElementById('theme-btn');
+    if (root.classList.contains('light')) {
+      root.classList.remove('light');
+      btn.textContent = '☀️ Light mode';
+    } else {
+      root.classList.add('light');
+      btn.textContent = '🌙 Dark mode';
+    }
+  }
+</script>
+</body>
+</html>

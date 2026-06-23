@@ -994,6 +994,8 @@ window.dataLayer.push({
     <h1>form_page_view</h1>
     <p class="lead">Fires when a user opens a short form page. This is the short-form equivalent of a page view.</p>
 
+    <div class="callout callout-danger"><strong>Implementation note (June 2026):</strong> In the <code>provionline-sanity-web</code> implementation, this event has been replaced by a standard <code>page_view</code> event with <code>page_type: "form_page"</code>. Pages with short forms have their <code>page_type</code> set to <code>"form_page"</code> in Sanity CMS, and the shared <code>GtmPageViewTracker</code> component in the layout fires the <code>page_view</code> event with this value automatically. A separate <code>form_page_view</code> event is no longer fired. GTM triggers should match on <code>event: "page_view"</code> + <code>page_type: "form_page"</code> instead of <code>event: "form_page_view"</code>.</div>
+
     <div class="callout callout-info"><strong>When to fire:</strong> Immediately upon rendering the short form component, before the user interacts with any fields.</div>
 
     <h2>Payload</h2>
@@ -1427,7 +1429,8 @@ window.dataLayer.push({
 
     <div class="callout callout-info">
       <strong>When to fire:</strong> On every new logical view: Home, product pages, content/info pages, error pages.<br><br>
-      <strong>Exceptions:</strong> Loan application steps use <code>checkout</code>. Short forms use <code>form_page_view</code>. Do not double-fire.
+      <strong>Exceptions:</strong> Loan application steps use <code>checkout</code>. Do not double-fire.<br><br>
+      <strong>Short form pages:</strong> As of June 2026, pages with short forms fire a standard <code>page_view</code> with <code>page_type: "form_page"</code> (set via Sanity CMS). The separate <code>form_page_view</code> event is no longer used in the <code>provionline-sanity-web</code> implementation.
     </div>
 
     <h2>Standard Page View</h2>
